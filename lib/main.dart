@@ -28,7 +28,8 @@ class PdfToAudioApp extends StatefulWidget {
 
 class _PdfToAudioAppState extends State<PdfToAudioApp> {
   Future<String?> pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    FilePickerResult? result = await FilePicker.platform
+        .pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
 
     if (result != null) {
       return result.files.single.path!;
@@ -39,21 +40,27 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: InkWell(
-          onTap: () async {
-            String? filePath = await pickFile();
-            print(filePath!);
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(vertical: 10.0),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10.0),
-              color: Colors.teal,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            InkWell(
+              onTap: () async {
+                String? filePath = await pickFile();
+                print(filePath!);
+              },
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 10.0),
+                padding: EdgeInsets.symmetric(vertical: 20.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.0),
+                  color: Colors.teal,
+                ),
+                child: Center(
+                  child: Text("Pick Pdf"),
+                ),
+              ),
             ),
-            child: Center(
-              child: Text("Pick Pdf"),
-            ),
-          ),
+          ],
         ),
       ),
     );
