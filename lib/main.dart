@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:ui';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf_render/pdf_render.dart';
@@ -31,6 +31,8 @@ class PdfToAudioApp extends StatefulWidget {
 }
 
 class _PdfToAudioAppState extends State<PdfToAudioApp> {
+  // late TtsState ttsState;
+
   Future<String?> pickFile() async {
     FilePickerResult? result = await FilePicker.platform
         .pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
@@ -63,7 +65,8 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
       var libImage = imglib.decodeImage(imgBytes!.buffer
           .asUint8List(imgBytes.offsetInBytes, imgBytes.lengthInBytes));
       //create a saved-to-dirctory file
-      File imgFile = new File('${documentDirectory!.path}/abc$i.jpg');
+      File imgFile = new File(
+          '${documentDirectory!.path}${doc.sourceName.split("/").last.split(".").first}$i.jpg');
 
       //write the image into the created file
       File file = await new File(imgFile.path)
@@ -86,6 +89,22 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
     }
     //print(imagesFromPdf);
     return imagesAndTextFromPDF;
+  }
+
+  FlutterTts flutterTts = FlutterTts();
+
+  Future _speak(String text) async {
+    await flutterTts.awaitSpeakCompletion(true);
+    List<dynamic> languages = await flutterTts.getLanguages;
+
+    await flutterTts.setLanguage("en-US");
+    var result = await flutterTts.speak(text);
+    // if (result == 1) setState(() => ttsState = TtsState.playing);
+  }
+
+  Future _stop() async {
+    var result = await flutterTts.stop();
+    //  if (result == 1) setState(() => ttsState = TtsState.stopped);
   }
 
   List<Map<String, dynamic>>? imageAndTextList = [];
@@ -136,6 +155,23 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
                                   imageAndTextList![index]['text'],
                                 ),
                               ),
+                              Center(
+                                child: Column(
+                                  children: [
+                                    IconButton(
+                                        onPressed: () {
+                                          _speak(
+                                              imageAndTextList![index]['text']);
+                                        },
+                                        icon: Icon(Icons.play_circle)),
+                                    IconButton(
+                                        onPressed: () {
+                                          _stop();
+                                        },
+                                        icon: Icon(Icons.stop)),
+                                  ],
+                                ),
+                              )
                             ],
                           ),
                         ),
