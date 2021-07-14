@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf_render/pdf_render.dart';
 import 'package:image/image.dart' as imglib;
@@ -40,15 +41,20 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
     }
   }
 
-  Future<List<File>> getImagesFromPdf(String filePath) async {
-    List<File> imagesFromPdf = [];
+  final textDetector = GoogleMlKit.vision.textDetector();
 
+  Future<List<Map<String, dynamic>>> getImagesFromPdf(String filePath) async {
+    // List<Image> imagesFromPdf = [];
+    // List<String> textFromImage = [];
+    List<Map<String, dynamic>> imagesAndTextFromPDF = [];
+    //open the pdf document
     final doc = await PdfDocument.openFile(filePath);
+    //get number of pages the pdf has
     final pages = doc.pageCount;
-    // List<imglib.Image> images = [];
-// get images from all the pages
+    //create a directory to add the file images
     final documentDirectory = await getExternalStorageDirectory();
 
+    //get the images and text from each page of the pdf
     for (int i = 1; i <= pages; i++) {
       var page = await doc.getPage(i);
       var imgPDF = await page.render();
@@ -56,27 +62,47 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
       var imgBytes = await img.toByteData(format: ImageByteFormat.png);
       var libImage = imglib.decodeImage(imgBytes!.buffer
           .asUint8List(imgBytes.offsetInBytes, imgBytes.lengthInBytes));
+      //create a saved-to-dirctory file
       File imgFile = new File('${documentDirectory!.path}/abc$i.jpg');
+
+      //write the image into the created file
       File file = await new File(imgFile.path)
           .writeAsBytes(imglib.encodeJpg(libImage!));
-      imagesFromPdf.add(file);
+      final inputImage = InputImage.fromFile(file);
+//get the text from the image
+      final RecognisedText recognisedText =
+          await textDetector.processImage(inputImage);
+      // imagesFromPdf.add(Image.file(file));
+      // textFromImage.add(recognisedText.text);
+
+      //add the image and text to a list.
+      imagesAndTextFromPDF.add(
+        {
+          "file": Image.file(file),
+          "text": recognisedText.text,
+        },
+      );
+      setState(() {});
     }
-    print(imagesFromPdf);
-    return imagesFromPdf;
+    //print(imagesFromPdf);
+    return imagesAndTextFromPDF;
   }
 
-  List<File>? imageList = [];
+  List<Map<String, dynamic>>? imageAndTextList = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              SizedBox(
+                height: 30.0,
+              ),
               InkWell(
                 onTap: () async {
-                  imageList = await pickFile()
+                  imageAndTextList = await pickFile()
                       .then((value) => getImagesFromPdf(value!));
                   // print(filePath);
                 },
@@ -92,15 +118,28 @@ class _PdfToAudioAppState extends State<PdfToAudioApp> {
                   ),
                 ),
               ),
-              imageList!.isNotEmpty
-                  ? Wrap(
+              imageAndTextList!.isNotEmpty
+                  ? Column(
                       children: List.generate(
-                          imageList!.length,
-                          (index) => Container(
-                              padding: EdgeInsets.only(right: 10.0),
-                              height: 100,
-                              width: 50,
-                              child: Image.file(imageList![index]))),
+                        imageAndTextList!.length,
+                        (index) => Container(
+                          padding: EdgeInsets.only(
+                              right: 10.0, bottom: 20.0, left: 10.0),
+                          width: double.infinity,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: imageAndTextList![index]['file'],
+                              ),
+                              Expanded(
+                                child: Text(
+                                  imageAndTextList![index]['text'],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     )
                   : SizedBox.shrink()
             ],
